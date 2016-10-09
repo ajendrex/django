@@ -1107,6 +1107,7 @@ class ModelChoiceIterator(object):
     def __init__(self, field):
         self.field = field
         self.queryset = field.queryset
+        self.opt_group = getattr(field, 'opt_group', None)
 
     def __iter__(self):
         if self.field.empty_label is not None:
@@ -1115,8 +1116,29 @@ class ModelChoiceIterator(object):
         # Can't use iterator() when queryset uses prefetch_related()
         if not queryset._prefetch_related_lookups:
             queryset = queryset.iterator()
+
+        if self.opt_group:
+            for choice in self.optgroup_iter(queryset):
+                yield choice
+        else:
+            for obj in queryset:
+                yield self.choice(obj)
+
+    def optgroup_iter(self, queryset):
+        prev_category_value = optgroup_choices = None
+
         for obj in queryset:
-            yield self.choice(obj)
+            category_value = getattr(obj, self.opt_group, None)
+            if prev_category_value != category_value:
+                if optgroup_choices:
+                    yield optgroup_choices
+                optgroup_choices = (self.field.label_from_instance(category_value), [])
+                options = optgroup_choices[1]
+            options.append(self.choice(obj))
+            prev_category_value = category_value
+
+        if optgroup_choices:
+            yield optgroup_choices
 
     def __len__(self):
         return (len(self.queryset) + (1 if self.field.empty_label is not None else 0))
@@ -1137,7 +1159,7 @@ class ModelChoiceField(ChoiceField):
 
     def __init__(self, queryset, empty_label="---------",
                  required=True, widget=None, label=None, initial=None,
-                 help_text='', to_field_name=None, limit_choices_to=None,
+                 help_text='', to_field_name=None, limit_choices_to=None, opt_group=None,
                  *args, **kwargs):
         if required and (initial is not None):
             self.empty_label = None
@@ -1151,6 +1173,7 @@ class ModelChoiceField(ChoiceField):
         self.queryset = queryset
         self.limit_choices_to = limit_choices_to   # limit the queryset later.
         self.to_field_name = to_field_name
+        self.opt_group = opt_group
 
     def get_limit_choices_to(self):
         """
