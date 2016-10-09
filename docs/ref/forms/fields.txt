@@ -1118,7 +1118,7 @@ method::
         field will be derived, and which will be used to validate the
         user's selection.
 
-    ``ModelChoiceField`` also takes two optional arguments:
+    ``ModelChoiceField`` also takes three optional arguments:
 
     .. attribute:: empty_label
 
@@ -1174,6 +1174,11 @@ method::
             ...
             </select>
 
+    .. attribute:: opt_group
+
+        Specifies a field that will be used to group choices, using the optgroup HTML tag.
+        You should use it in conjunction with a queryset ordered by the same field.
+
     The ``__str__`` (``__unicode__`` on Python 2) method of the model will be
     called to generate string representations of the objects for use in the
     field's choices; to provide customized representations, subclass
@@ -1215,11 +1220,15 @@ method::
 
         Same as :class:`ModelChoiceField.queryset`.
 
-    Takes one optional argument:
+    Takes two optional arguments:
 
     .. attribute:: to_field_name
 
         Same as :class:`ModelChoiceField.to_field_name`.
+
+    .. attribute:: opt_group
+
+        Same as :class:`ModelChoiceField.opt_group`.
 
 Creating custom fields
 ======================
