@@ -1715,6 +1715,48 @@ class ModelChoiceFieldTests(TestCase):
         field = CustomModelChoiceField(Category.objects.all())
         self.assertIsInstance(field.choices, CustomModelChoiceIterator)
 
+    def test_modelchoicefield_optgroup_iterator(self):
+        ernest = Writer.objects.create(name='Ernest')
+        stephen = Writer.objects.create(name='Stephen')
+        mark = Writer.objects.create(name='Mark')
+
+        def article_factory(headline, writer):
+            return Article(
+                headline=headline,
+                writer=writer,
+                slug='',
+                pub_date=datetime.date.today(),
+                created=datetime.date(2010,1,1),
+                article='',
+            )
+
+        Article.objects.bulk_create([
+            article_factory('article1', ernest),
+            article_factory('article2', ernest),
+            article_factory('article3', ernest),
+            article_factory('article4', stephen),
+            article_factory('article5', stephen),
+            article_factory('article6', stephen),
+            article_factory('article9', mark),
+            article_factory('article8', mark),
+            article_factory('article7', mark),
+        ])
+
+        field = forms.ModelChoiceField(Article.objects.order_by('writer', 'headline'), opt_group='writer')
+        self.assertIsInstance(field.choices, ModelChoiceIterator)
+        choices = [choice for choice in field.choices]
+        self.assertEqual(choices[0], ('', '---------'))
+        self.assertIsInstance(choices[1], tuple)
+        self.assertEqual(choices[2][0], mark.name)
+        self.assertEqual(choices[3][1], [(4, 'article4'), (5, 'article5'), (6, 'article6')])
+
+        field = forms.ModelMultipleChoiceField(Article.objects.order_by('writer', 'headline'), opt_group='writer')
+        self.assertIsInstance(field.choices, ModelChoiceIterator)
+        choices = [choice for choice in field.choices]
+        self.assertEqual(choices[0][0], ernest.name)
+        self.assertEqual(choices[1][1], [(9, 'article7'), (8, 'article8'), (7, 'article9')])
+        self.assertIsInstance(choices[2], tuple)
+
     def test_modelchoicefield_num_queries(self):
         """
         Widgets that render multiple subwidgets shouldn't make more than one
